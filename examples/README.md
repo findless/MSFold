@@ -1,13 +1,10 @@
 # Example input
 
-This directory contains a placeholder protein sequence for testing that
-the MSFold pipeline runs correctly.
+This directory contains a small example protein sequence for verifying
+that the MSFold pipeline runs correctly.
 
-**Important:**
-- This example is for **software testing only**.
-- It is **not** intended to reproduce manuscript-level results.
-- Full ESM3 model weights (~12 GB) will be downloaded from HuggingFace
-  on first run.
+Full ESM3 model weights (~12 GB) will be downloaded from Hugging Face
+on first run.
 
 ## Quick test
 
@@ -19,8 +16,7 @@ python scripts/run_msfold_sample.py \
     --device cuda
 ```
 
-This example uses the released default configuration.
-(mostly ESM3 loading time).
+This example uses the default MSFold configuration.
 
 ## Expected output
 

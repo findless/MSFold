@@ -1,29 +1,12 @@
-# MSFold — Minimal Public Release
+# MSFold
 
 This release accompanies the manuscript *Sampling in structure-token space enables accurate prediction of multiple conformations*.
 
 MSFold samples protein conformational ensembles using parallel tempering
 with block-wise replica exchange, built on ESM3 structure tokens.
 
-## What this repository provides
-
-- **MSFold sampling**: Run parallel-tempered block Gibbs sampling on an
-  input amino acid sequence.
-- **SLL ranking**: Rank sampled conformations by sequence log-likelihood
-  (inverse folding score).
-- **Configuration**: Default hyperparameters matching the released MSFold setup.
-- **Example input**: A placeholder sequence for smoke testing.
-
-## What this repository does NOT provide
-
-- TM-score evaluation scripts
-- Benchmark reproduction scripts
-- PDB download or chain extraction scripts
-- Reference PDB/mmCIF structures
-- Full raw benchmark outputs
-- Table or figure reproduction scripts
-- Any experimental script variants
-- Source-data files under `data/`
+This repository provides the released MSFold sampling and sample-ranking
+workflow together with the default configuration and a small example input.
 
 ## Installation
 
@@ -57,7 +40,7 @@ pip install -e .
 
 MSFold must be installed and run from the standalone `release_msfold/` directory after cloning it from its own repository. It must not depend on any surrounding development workspace. It does require the official external ESM3 code and package installation.
 
-The full manuscript source data are distributed separately from this code repository. Download the complete `data/` release from Zenodo.
+The full `data/` release is distributed separately on Zenodo.
 
 This release is tested against the following dependency baseline:
 
@@ -107,23 +90,8 @@ python scripts/rank_sll.py \
   --out outputs/example/sll_ranking.csv
 ```
 
-## Included files
+## Repository contents
 
-The standalone MSFold code repository should include:
-
-- `README.md`
-- `environment.yml`
-- `pyproject.toml`
-- `.gitignore`
-- `test_release.sh`
-- `configs/`
-- `examples/`
-- `msfold/`
-- `scripts/`
-
-The standalone MSFold code repository should not include:
-
-- `data/`
-- internal compare scripts
-- experimental workspace files
-- generated outputs such as `outputs/`, `*.pdb`, or `*.pkl`
+The MSFold code repository contains the code, configuration, and examples
+needed to install and run MSFold. The full `data/` release is distributed
+separately on Zenodo.
