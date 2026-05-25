@@ -1,10 +1,8 @@
 # Example input
 
-This directory contains a small example protein sequence for verifying
-that the MSFold pipeline runs correctly.
+This directory contains a small example protein sequence for verifying that the MSFold pipeline runs correctly.
 
-Full ESM3 model weights (~12 GB) will be downloaded from Hugging Face
-on first run.
+Full ESM3 model weights (~12 GB) will be downloaded on first run.
 
 ## Quick test
 
