@@ -1,0 +1,24 @@
+name: msfold
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch=2.5.1
+  - transformers=4.46.3
+  - einops
+  - biopython
+  - pandas=2.2.3
+  - numpy=1.26.4
+  - scipy
+  - scikit-learn
+  - statsmodels
+  - tqdm
+  - pyyaml
+  - attrs
+  - pip
+  - pip:
+    - biotite==0.41.2
+    - huggingface_hub==0.26.5
+    - esm==3.1.1

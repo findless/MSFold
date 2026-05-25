@@ -1,0 +1,19 @@
+# MSFold default configuration
+# These values match the final experiment script:
+#   x/pt_swap_block_balance_initial_max2_gammac025.py
+
+init_temp_min: 0.5
+init_temp_max: 10
+temp_nums: 40
+total_steps: 500
+alpha_star: 0.234
+gamma_c: 0.25
+gamma_ksai: 0.6
+anchor_max: 30
+anchor_min: 0.5
+swap_block_nums: 3
+max_interval: 2.0
+block_reset: 25
+nn_nums: 16
+concentration: 2
+block: true
