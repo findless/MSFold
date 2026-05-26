@@ -1,6 +1,7 @@
 """Main MSFold sampling entry point: sample_from_sequence()."""
 
 import copy
+import os
 import time
 import uuid
 import torch
