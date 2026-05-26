@@ -119,6 +119,10 @@ def sample_from_sequence(
             "DEBUG_INIT stage=after_logits logits_first5=%s",
             scaled_logits[0, :5, :5].detach().cpu().tolist(),
         )
+        logger.info(
+            "DEBUG_INIT stage=pre_multinomial rng_marker=%s",
+            torch.randint(0, 10**9, (1,)).item(),
+        )
 
     samples = [
         torch.multinomial(probs.squeeze(0), num_samples=1).squeeze()
