@@ -58,6 +58,7 @@ def sample_from_sequence(
     """
     if seed is not None:
         torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
 
     # --- Unpack config ---
     init_temp_min = config["init_temp_min"]
@@ -124,6 +125,7 @@ def sample_from_sequence(
             torch.randint(0, 10**9, (1,)).item(),
             torch.cuda.get_rng_state().tolist()[:5],
         )
+        torch.save(probs.cpu(), "/tmp/release_probs.pt")
 
     samples = [
         torch.multinomial(probs.squeeze(0), num_samples=1).squeeze()
