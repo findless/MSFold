@@ -107,6 +107,17 @@ def decode_and_nearest_neighbors_index(
 
     for i in range(batch_size):
         protein.structure = batch_protein_all_levels.structure[i, :]
+        if debug_decode_nn and i == 0:
+            logger.info(
+                "DEBUG_DECODE_INPUT stage=pre_decode seq_first20=%s struct_first10=%s ss_none=%s sasa_none=%s func_none=%s resann_none=%s coords_none=%s",
+                protein.sequence[:20].detach().cpu().tolist() if protein.sequence is not None else None,
+                protein.structure[:10].detach().cpu().tolist() if protein.structure is not None else None,
+                protein.secondary_structure is None,
+                protein.sasa is None,
+                protein.function is None,
+                protein.residue_annotations is None,
+                protein.coordinates is None,
+            )
         p = client.decode(protein)
         coords = torch.tensor(p.coordinates, device=batch_protein_all_levels.structure.device)
         if debug_decode_nn and i == 0:
