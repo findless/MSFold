@@ -1,6 +1,7 @@
 """Main MSFold sampling entry point: sample_from_sequence()."""
 
 import copy
+import json
 import os
 import time
 import uuid
@@ -76,8 +77,6 @@ def sample_from_sequence(
     nn_nums = config["nn_nums"]
     concentration = config["concentration"]
     use_block = config.get("block", True)
-    debug_step0 = os.environ.get("MSFOLD_DEBUG_STEP0") == "1"
-    debug_step0_detail = os.environ.get("MSFOLD_DEBUG_STEP0_DETAIL") == "1"
 
     ensure_output_dir(output_dir)
     start_time = time.time()
@@ -115,29 +114,16 @@ def sample_from_sequence(
         logits = client.logits(protein, logits_config)
     scaled_logits = logits.logits.structure
     probs = torch.softmax(scaled_logits, dim=-1)
-    if debug_step0_detail:
-        logger.info(
-            "DEBUG_INIT stage=after_logits logits_first5=%s",
-            scaled_logits[0, :5, :5].detach().cpu().tolist(),
-        )
-        logger.info(
-            "DEBUG_INIT stage=pre_multinomial rng_marker=%s cuda_marker=%s",
-            torch.randint(0, 10**9, (1,)).item(),
-            torch.cuda.get_rng_state().tolist()[:5],
-        )
-        torch.save(probs.cpu(), "/tmp/release_probs.pt")
 
+    # Re-seed CUDA RNG to ensure deterministic multinomial sampling:
+    # GPU forward passes (encode, logits) may consume CUDA random state
+    # in a non-deterministic manner across different execution paths.
     if seed is not None:
         torch.cuda.manual_seed(seed)
     samples = [
         torch.multinomial(probs.squeeze(0), num_samples=1).squeeze()
         for _ in range(temp_nums)
     ]
-    if debug_step0_detail:
-        logger.info(
-            "DEBUG_INIT stage=after_sample samples0_first10=%s",
-            samples[0][:10].detach().cpu().tolist(),
-        )
 
     for i in range(temp_nums):
         protein_all_levels[i].structure = samples[i]
@@ -145,11 +131,6 @@ def sample_from_sequence(
         protein_all_levels[i].structure[-1] = C.STRUCTURE_EOS_TOKEN
 
     batch_protein_all_levels = batch_esm_protein_tensors(protein_all_levels)
-    if debug_step0_detail:
-        logger.info(
-            "DEBUG_INIT stage=after_batch struct_first10=%s",
-            batch_protein_all_levels.structure[0, :10].detach().cpu().tolist(),
-        )
 
     # --- Initialize nearest-neighbor index ---
     if use_block:
@@ -194,13 +175,6 @@ def sample_from_sequence(
                 decode_and_nearest_neighbors_index(
                     client, batch_protein_all_levels, protein, batch_nn_index
                 )
-                if debug_step0_detail and step == 0:
-                    logger.info(
-                        "DEBUG_STEP0_DETAIL stage=after_decode_nn target=%s nn_first=%s struct_first10=%s",
-                        target_name or "unknown",
-                        batch_nn_index[0, 0, :10].detach().cpu().tolist(),
-                        batch_protein_all_levels.structure[0, :10].detach().cpu().tolist(),
-                    )
 
             if use_block:
                 batch_adaptive_gibbs_step(
@@ -217,12 +191,6 @@ def sample_from_sequence(
                     logits_config,
                     temp_levels,
                 )
-            if debug_step0_detail and step == 0:
-                logger.info(
-                    "DEBUG_STEP0_DETAIL stage=after_gibbs target=%s struct_first10=%s",
-                    target_name or "unknown",
-                    batch_protein_all_levels.structure[0, :10].detach().cpu().tolist(),
-                )
 
             # Block exchange
             alpha_current, swap_bool = swap_block_state(
@@ -233,14 +201,6 @@ def sample_from_sequence(
                 client=client,
                 temp=temp_levels,
             )
-            if debug_step0_detail and step == 0:
-                logger.info(
-                    "DEBUG_STEP0_DETAIL stage=after_swap target=%s alpha_first=%s swap_first=%s struct_first10=%s",
-                    target_name or "unknown",
-                    alpha_current[:4].detach().cpu().tolist(),
-                    swap_bool[:4].detach().cpu().tolist(),
-                    batch_protein_all_levels.structure[0, :10].detach().cpu().tolist(),
-                )
 
             if step % 2 == 0:
                 accept_ratio[::2] = alpha_current[::2]
@@ -261,17 +221,6 @@ def sample_from_sequence(
                     "swap": swap_bool.cpu().clone(),
                 }
             )
-
-            if debug_step0 and step == 0:
-                logger.info(
-                    "DEBUG_STEP0 target=%s temp_first=%s alpha_first=%s swap_first=%s nll_first=%s struct_first10=%s",
-                    target_name or "unknown",
-                    temp_levels[:4].detach().cpu().tolist(),
-                    alpha_current[:4].detach().cpu().tolist(),
-                    swap_bool[:4].detach().cpu().tolist(),
-                    total_nll[:4].detach().cpu().tolist(),
-                    batch_protein_all_levels.structure[0, :10].detach().cpu().tolist(),
-                )
 
             if debug_trace_path is not None:
                 debug_trace.append(
@@ -393,7 +342,6 @@ def sample_from_sequence(
     logger.info("Sampling complete. Total time: %.1f s", duration)
 
     # Save config used
-    import json
     with open(f"{output_dir}/config_used.json", "w") as f:
         json.dump(config, f, indent=2)
 

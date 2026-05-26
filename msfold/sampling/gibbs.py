@@ -1,7 +1,6 @@
 """Block Gibbs sampling with nearest-neighbor masking."""
 
 import logging
-import os
 
 import torch
 from esm.utils.constants import esm3 as C
@@ -93,11 +92,6 @@ def decode_and_nearest_neighbors_index(
         nn_index: LongTensor [N_replicas, L, k-1] to fill in-place.
         k: Number of nearest neighbors including self (default 16).
     """
-    debug_decode_nn = (
-        os.environ.get("MSFOLD_DEBUG_DECODE_NN") == "1"
-        or os.environ.get("MSFOLD_DEBUG_STEP0_DETAIL") == "1"
-    )
-
     batch_size, protein_length = batch_protein_all_levels.sequence.shape
     assert nn_index.shape == (
         batch_size,
@@ -107,34 +101,12 @@ def decode_and_nearest_neighbors_index(
 
     for i in range(batch_size):
         protein.structure = batch_protein_all_levels.structure[i, :]
-        if debug_decode_nn and i == 0:
-            logger.info(
-                "DEBUG_DECODE_INPUT stage=pre_decode seq_first20=%s struct_first10=%s ss_none=%s sasa_none=%s func_none=%s resann_none=%s coords_none=%s",
-                protein.sequence[:20].detach().cpu().tolist() if protein.sequence is not None else None,
-                protein.structure[:10].detach().cpu().tolist() if protein.structure is not None else None,
-                protein.secondary_structure is None,
-                protein.sasa is None,
-                protein.function is None,
-                protein.residue_annotations is None,
-                protein.coordinates is None,
-            )
         p = client.decode(protein)
-        coords = torch.tensor(p.coordinates, device=batch_protein_all_levels.structure.device)
-        if debug_decode_nn and i == 0:
-            logger.info(
-                "DEBUG_DECODE_NN stage=decoded_coords coords_shape=%s first_atom=%s struct_first10=%s",
-                tuple(coords.shape),
-                coords[0].detach().cpu().tolist() if coords.numel() > 0 else None,
-                batch_protein_all_levels.structure[i, :10].detach().cpu().tolist(),
-            )
+        coords = torch.tensor(
+            p.coordinates, device=batch_protein_all_levels.structure.device
+        )
         distance_matrix = torch.cdist(
             coords[:, 1, :], coords[:, 1, :], p=2
         )
         sorted_index = torch.argsort(distance_matrix, dim=1)[:, 1:k]
         nn_index[i, :, :] = sorted_index
-
-    if debug_decode_nn:
-        logger.info(
-            "DEBUG_DECODE_NN stage=nn_index nn_first=%s",
-            nn_index[0, 0, :10].detach().cpu().tolist(),
-        )
