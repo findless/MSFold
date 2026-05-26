@@ -1,6 +1,6 @@
 # Example input
 
-This directory contains a small example protein sequence for verifying that the MSFold pipeline runs correctly.
+This directory contains the 2i7u_B example sequence for verifying that the MSFold pipeline runs correctly.
 
 Full ESM3 model weights (~12 GB) will be downloaded on first run.
 
