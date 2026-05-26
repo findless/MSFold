@@ -6,6 +6,7 @@ import uuid
 import torch
 import logging
 import pickle
+from tqdm import tqdm
 from esm.sdk.api import ESMProtein, LogitsConfig
 from esm.utils.constants import esm3 as C
 
@@ -143,7 +144,13 @@ def sample_from_sequence(
     debug_trace = []
 
     with torch.no_grad():
-        for step in range(total_steps):
+        progress = tqdm(
+            range(total_steps),
+            total=total_steps,
+            desc=f"MSFold sampling [{target_name or 'unknown'}]",
+            leave=True,
+        )
+        for step in progress:
             if step == 0 or (step + 1) % 10 == 0 or step + 1 == total_steps:
                 logger.info(
                     "Sampling target=%s step=%d/%d",
@@ -294,10 +301,12 @@ def sample_from_sequence(
 
                 timestamp = int(time.time())
                 unique_id = uuid.uuid4().hex
+                pdb_dir = f"{output_dir}/temp_{j}"
+                os.makedirs(pdb_dir, exist_ok=True)
                 pdb_filename = (
-                    f"temp_{j}_step_{x['step']}_{timestamp}_{unique_id}.pdb"
+                    f"device_batch_gen_{timestamp}_{unique_id}.pdb"
                 )
-                pdb_path = f"{output_dir}/{pdb_filename}"
+                pdb_path = f"{pdb_dir}/{pdb_filename}"
                 p.to_pdb(pdb_path)
 
                 nll_val = x["nll"][j].item()
@@ -315,7 +324,7 @@ def sample_from_sequence(
                         "sll": sll_val,
                         "ptm": p.ptm.item() if p.ptm is not None else None,
                         "plddt": p.plddt.mean().item() if p.plddt is not None else None,
-                        "structure_path": pdb_filename,
+                        "structure_path": f"temp_{j}/{pdb_filename}",
                     }
                 )
 
