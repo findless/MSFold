@@ -10,6 +10,7 @@ Example:
 """
 
 import argparse
+import logging
 import sys
 import os
 from pathlib import Path
@@ -24,6 +25,8 @@ from msfold.utils.io import read_fasta
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
     parser = argparse.ArgumentParser(
         description="MSFold: protein structure sampling via parallel tempering with block swap."
     )
