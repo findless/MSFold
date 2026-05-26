@@ -34,6 +34,7 @@ def sample_from_sequence(
     seed: int | None = None,
     debug_trace_path: str | None = None,
     trace_only: bool = False,
+    target_name: str | None = None,
 ):
     """Run MSFold sampling on a protein sequence.
 
@@ -82,8 +83,13 @@ def sample_from_sequence(
 
     sequence_length = len(protein.sequence)
     logger.info(
-        "Encoded sequence of length %d. Starting MSFold sampling...",
+        "Starting MSFold sampling for target=%s length=%d temp_nums=%d total_steps=%d device=%s output_dir=%s",
+        target_name or "unknown",
         sequence_length,
+        temp_nums,
+        total_steps,
+        device,
+        output_dir,
     )
 
     # --- Initialize temperature ladder ---
@@ -138,6 +144,14 @@ def sample_from_sequence(
 
     with torch.no_grad():
         for step in range(total_steps):
+            if step == 0 or (step + 1) % 10 == 0 or step + 1 == total_steps:
+                logger.info(
+                    "Sampling target=%s step=%d/%d",
+                    target_name or "unknown",
+                    step + 1,
+                    total_steps,
+                )
+
             accept_ratio = torch.full(
                 (temp_nums - 1,), alpha_star, device=device
             )

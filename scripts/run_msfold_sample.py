@@ -12,6 +12,7 @@ Example:
 import argparse
 import sys
 import os
+from pathlib import Path
 import yaml
 
 # Allow running from the release_msfold directory
@@ -64,6 +65,7 @@ def main():
         output_dir=args.out,
         device=args.device,
         seed=args.seed,
+        target_name=Path(args.fasta).stem,
     )
 
     print(f"Done. Samples saved to: {result['samples_path']}")
