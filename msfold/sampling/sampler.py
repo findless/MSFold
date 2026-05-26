@@ -120,8 +120,9 @@ def sample_from_sequence(
             scaled_logits[0, :5, :5].detach().cpu().tolist(),
         )
         logger.info(
-            "DEBUG_INIT stage=pre_multinomial rng_marker=%s",
+            "DEBUG_INIT stage=pre_multinomial rng_marker=%s cuda_marker=%s",
             torch.randint(0, 10**9, (1,)).item(),
+            torch.cuda.get_rng_state().tolist()[:5],
         )
 
     samples = [
