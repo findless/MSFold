@@ -75,6 +75,7 @@ def sample_from_sequence(
     nn_nums = config["nn_nums"]
     concentration = config["concentration"]
     use_block = config.get("block", True)
+    debug_step0 = os.environ.get("MSFOLD_DEBUG_STEP0") == "1"
 
     ensure_output_dir(output_dir)
     start_time = time.time()
@@ -214,6 +215,17 @@ def sample_from_sequence(
                     "swap": swap_bool.cpu().clone(),
                 }
             )
+
+            if debug_step0 and step == 0:
+                logger.info(
+                    "DEBUG_STEP0 target=%s temp_first=%s alpha_first=%s swap_first=%s nll_first=%s struct_first10=%s",
+                    target_name or "unknown",
+                    temp_levels[:4].detach().cpu().tolist(),
+                    alpha_current[:4].detach().cpu().tolist(),
+                    swap_bool[:4].detach().cpu().tolist(),
+                    total_nll[:4].detach().cpu().tolist(),
+                    batch_protein_all_levels.structure[0, :10].detach().cpu().tolist(),
+                )
 
             if debug_trace_path is not None:
                 debug_trace.append(
