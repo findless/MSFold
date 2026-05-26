@@ -76,6 +76,7 @@ def sample_from_sequence(
     concentration = config["concentration"]
     use_block = config.get("block", True)
     debug_step0 = os.environ.get("MSFOLD_DEBUG_STEP0") == "1"
+    debug_step0_detail = os.environ.get("MSFOLD_DEBUG_STEP0_DETAIL") == "1"
 
     ensure_output_dir(output_dir)
     start_time = time.time()
@@ -169,6 +170,13 @@ def sample_from_sequence(
                 decode_and_nearest_neighbors_index(
                     client, batch_protein_all_levels, protein, batch_nn_index
                 )
+                if debug_step0_detail and step == 0:
+                    logger.info(
+                        "DEBUG_STEP0_DETAIL stage=after_decode_nn target=%s nn_first=%s struct_first10=%s",
+                        target_name or "unknown",
+                        batch_nn_index[0, 0, :10].detach().cpu().tolist(),
+                        batch_protein_all_levels.structure[0, :10].detach().cpu().tolist(),
+                    )
 
             if use_block:
                 batch_adaptive_gibbs_step(
@@ -185,6 +193,12 @@ def sample_from_sequence(
                     logits_config,
                     temp_levels,
                 )
+            if debug_step0_detail and step == 0:
+                logger.info(
+                    "DEBUG_STEP0_DETAIL stage=after_gibbs target=%s struct_first10=%s",
+                    target_name or "unknown",
+                    batch_protein_all_levels.structure[0, :10].detach().cpu().tolist(),
+                )
 
             # Block exchange
             alpha_current, swap_bool = swap_block_state(
@@ -195,6 +209,14 @@ def sample_from_sequence(
                 client=client,
                 temp=temp_levels,
             )
+            if debug_step0_detail and step == 0:
+                logger.info(
+                    "DEBUG_STEP0_DETAIL stage=after_swap target=%s alpha_first=%s swap_first=%s struct_first10=%s",
+                    target_name or "unknown",
+                    alpha_current[:4].detach().cpu().tolist(),
+                    swap_bool[:4].detach().cpu().tolist(),
+                    batch_protein_all_levels.structure[0, :10].detach().cpu().tolist(),
+                )
 
             if step % 2 == 0:
                 accept_ratio[::2] = alpha_current[::2]
