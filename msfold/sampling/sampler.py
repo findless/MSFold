@@ -127,6 +127,8 @@ def sample_from_sequence(
         )
         torch.save(probs.cpu(), "/tmp/release_probs.pt")
 
+    if seed is not None:
+        torch.cuda.manual_seed(seed)
     samples = [
         torch.multinomial(probs.squeeze(0), num_samples=1).squeeze()
         for _ in range(temp_nums)
