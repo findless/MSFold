@@ -1,7 +1,12 @@
 """Block Gibbs sampling with nearest-neighbor masking."""
 
+import logging
+import os
+
 import torch
 from esm.utils.constants import esm3 as C
+
+logger = logging.getLogger(__name__)
 
 
 def batch_adaptive_gibbs_step(client, protein, config, temp, **kwargs):
@@ -88,6 +93,11 @@ def decode_and_nearest_neighbors_index(
         nn_index: LongTensor [N_replicas, L, k-1] to fill in-place.
         k: Number of nearest neighbors including self (default 16).
     """
+    debug_decode_nn = (
+        os.environ.get("MSFOLD_DEBUG_DECODE_NN") == "1"
+        or os.environ.get("MSFOLD_DEBUG_STEP0_DETAIL") == "1"
+    )
+
     batch_size, protein_length = batch_protein_all_levels.sequence.shape
     assert nn_index.shape == (
         batch_size,
@@ -98,8 +108,22 @@ def decode_and_nearest_neighbors_index(
     for i in range(batch_size):
         protein.structure = batch_protein_all_levels.structure[i, :]
         p = client.decode(protein)
+        coords = torch.tensor(p.coordinates, device=batch_protein_all_levels.structure.device)
+        if debug_decode_nn and i == 0:
+            logger.info(
+                "DEBUG_DECODE_NN stage=decoded_coords coords_shape=%s first_atom=%s struct_first10=%s",
+                tuple(coords.shape),
+                coords[0].detach().cpu().tolist() if coords.numel() > 0 else None,
+                batch_protein_all_levels.structure[i, :10].detach().cpu().tolist(),
+            )
         distance_matrix = torch.cdist(
-            p.coordinates[:, 1, :], p.coordinates[:, 1, :], p=2
+            coords[:, 1, :], coords[:, 1, :], p=2
         )
         sorted_index = torch.argsort(distance_matrix, dim=1)[:, 1:k]
         nn_index[i, :, :] = sorted_index
+
+    if debug_decode_nn:
+        logger.info(
+            "DEBUG_DECODE_NN stage=nn_index nn_first=%s",
+            nn_index[0, 0, :10].detach().cpu().tolist(),
+        )
