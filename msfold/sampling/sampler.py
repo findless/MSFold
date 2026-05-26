@@ -114,11 +114,21 @@ def sample_from_sequence(
         logits = client.logits(protein, logits_config)
     scaled_logits = logits.logits.structure
     probs = torch.softmax(scaled_logits, dim=-1)
+    if debug_step0_detail:
+        logger.info(
+            "DEBUG_INIT stage=after_logits logits_first5=%s",
+            scaled_logits[0, :5, :5].detach().cpu().tolist(),
+        )
 
     samples = [
         torch.multinomial(probs.squeeze(0), num_samples=1).squeeze()
         for _ in range(temp_nums)
     ]
+    if debug_step0_detail:
+        logger.info(
+            "DEBUG_INIT stage=after_sample samples0_first10=%s",
+            samples[0][:10].detach().cpu().tolist(),
+        )
 
     for i in range(temp_nums):
         protein_all_levels[i].structure = samples[i]
@@ -126,6 +136,11 @@ def sample_from_sequence(
         protein_all_levels[i].structure[-1] = C.STRUCTURE_EOS_TOKEN
 
     batch_protein_all_levels = batch_esm_protein_tensors(protein_all_levels)
+    if debug_step0_detail:
+        logger.info(
+            "DEBUG_INIT stage=after_batch struct_first10=%s",
+            batch_protein_all_levels.structure[0, :10].detach().cpu().tolist(),
+        )
 
     # --- Initialize nearest-neighbor index ---
     if use_block:
