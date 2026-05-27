@@ -32,13 +32,9 @@ Official ESM instructions:
 - `https://github.com/evolutionaryscale/esm`
 
 ### Step 3. Create the environment and install ESM + MSFold
-
-Create the conda environment, activate it, install the checked-out `./esm` source tree into the environment, and then install MSFold from the repository root. This step is important: MSFold must import the ESM code from the `./esm` checkout at `v3.1.1`, not an arbitrary `esm` package already present in `site-packages`.
-
 ```bash
 conda env create -f environment.yml
 conda activate msfold
-pip uninstall -y esm
 pip install -e ./esm
 pip install -e .
 ```
