@@ -23,6 +23,7 @@ from msfold.sampling.gibbs import (
 from msfold.sampling.exchange import swap_block_state
 from msfold.scoring.sll import batch_cal_seq_likelihood, compute_sll
 from msfold.utils.batching import batch_esm_protein_tensors
+from msfold.utils.debug_trace import debug_trace
 from msfold.utils.io import ensure_output_dir, write_samples_csv, write_run_metadata
 
 logger = logging.getLogger(__name__)
@@ -84,6 +85,8 @@ def sample_from_sequence(
     # --- Encode sequence ---
     protein = ESMProtein(sequence=sequence)
     protein = client.encode(protein)
+    debug_trace.log("init/encoded_sequence", protein.sequence)
+    debug_trace.log("init/encoded_structure", protein.structure)
 
     sequence_length = len(protein.sequence)
     logger.info(
@@ -102,6 +105,8 @@ def sample_from_sequence(
     )
     temp_levels = temp_levels.to(device)
     temp_intervals = torch.log(temp_intervals).to(device)
+    debug_trace.log("init/temp_levels", temp_levels)
+    debug_trace.log("init/temp_intervals", temp_intervals)
     log_max_intervals = torch.log(
         torch.tensor(max_interval, device=device, dtype=torch.float32)
     )
@@ -114,6 +119,8 @@ def sample_from_sequence(
         logits = client.logits(protein, logits_config)
     scaled_logits = logits.logits.structure
     probs = torch.softmax(scaled_logits, dim=-1)
+    debug_trace.log("init/logits_structure", scaled_logits)
+    debug_trace.log("init/probs", probs)
 
     # Re-seed CUDA RNG to ensure deterministic multinomial sampling:
     # GPU forward passes (encode, logits) may consume CUDA random state
@@ -124,6 +131,7 @@ def sample_from_sequence(
         torch.multinomial(probs.squeeze(0), num_samples=1).squeeze()
         for _ in range(temp_nums)
     ]
+    debug_trace.log("init/samples", samples)
 
     for i in range(temp_nums):
         protein_all_levels[i].structure = samples[i]
@@ -131,6 +139,7 @@ def sample_from_sequence(
         protein_all_levels[i].structure[-1] = C.STRUCTURE_EOS_TOKEN
 
     batch_protein_all_levels = batch_esm_protein_tensors(protein_all_levels)
+    debug_trace.log("init/batch_structure", batch_protein_all_levels.structure)
 
     # --- Initialize nearest-neighbor index ---
     if use_block:
@@ -145,11 +154,12 @@ def sample_from_sequence(
         decode_and_nearest_neighbors_index(
             client, batch_protein_all_levels, protein, batch_nn_index
         )
+    debug_trace.log("init/nn_index", batch_nn_index if use_block else None)
 
     # --- Sampling loop ---
     samples_block = []
     samples_file_list = []
-    debug_trace = []
+    _debug_records = []
 
     with torch.no_grad():
         progress = tqdm(
@@ -159,6 +169,7 @@ def sample_from_sequence(
             leave=True,
         )
         for step in progress:
+            debug_trace.step = step
             if step == 0 or (step + 1) % 10 == 0 or step + 1 == total_steps:
                 logger.info(
                     "Sampling target=%s step=%d/%d",
@@ -191,6 +202,7 @@ def sample_from_sequence(
                     logits_config,
                     temp_levels,
                 )
+            debug_trace.log(f"step_{step}/post_gibbs_structure", batch_protein_all_levels.structure)
 
             # Block exchange
             alpha_current, swap_bool = swap_block_state(
@@ -201,6 +213,9 @@ def sample_from_sequence(
                 client=client,
                 temp=temp_levels,
             )
+            debug_trace.log(f"step_{step}/post_swap_structure", batch_protein_all_levels.structure)
+            debug_trace.log(f"step_{step}/alpha_current", alpha_current)
+            debug_trace.log(f"step_{step}/swap_bool", swap_bool)
 
             if step % 2 == 0:
                 accept_ratio[::2] = alpha_current[::2]
@@ -223,7 +238,7 @@ def sample_from_sequence(
             )
 
             if debug_trace_path is not None:
-                debug_trace.append(
+                _debug_records.append(
                     {
                         "step": step,
                         "temperature": temp_levels.detach().cpu().clone(),
@@ -260,6 +275,8 @@ def sample_from_sequence(
                     sum_exponentials_after_inclusive(temp_intervals)
                     + init_temp_min
                 )
+            debug_trace.log(f"step_{step}/temp_levels", temp_levels)
+            debug_trace.log(f"step_{step}/temp_intervals", temp_intervals)
 
             # Checkpoint intermediate .pkl every 100 steps
             if (step + 1) % 100 == 0:
@@ -274,6 +291,10 @@ def sample_from_sequence(
                 )
                 samples_block = []
 
+            # Debug trace checkpoint every 10 steps
+            if (step + 1) % 10 == 0:
+                debug_trace.save_checkpoint(step + 1)
+
         # Save final block
         if samples_block:
             block_filename = f"{output_dir}/samples_block_final.pkl"
@@ -285,7 +306,8 @@ def sample_from_sequence(
         duration = time.time() - start_time
         if debug_trace_path is not None:
             with open(debug_trace_path, "wb") as f:
-                pickle.dump(debug_trace, f)
+                pickle.dump(_debug_records, f)
+        debug_trace.save()
         return {
             "samples_path": None,
             "output_dir": output_dir,
@@ -359,8 +381,9 @@ def sample_from_sequence(
 
     if debug_trace_path is not None:
         with open(debug_trace_path, "wb") as f:
-            pickle.dump(debug_trace, f)
+            pickle.dump(_debug_records, f)
 
+    debug_trace.save()
     return {
         "samples_path": f"{output_dir}/samples.csv",
         "output_dir": output_dir,

@@ -4,6 +4,7 @@ import copy
 import torch
 from esm.sdk.api import LogitsConfig
 from esm.utils.constants import esm3 as C
+from msfold.utils.debug_trace import debug_trace
 
 
 def swap_block_state(protein, batch_nn_index, step, swap_block_nums, client, temp):
@@ -47,6 +48,8 @@ def swap_block_state(protein, batch_nn_index, step, swap_block_nums, client, tem
 
     perm = torch.randperm(sequence_length, device=protein.sequence.device)
     selected_block_indices = perm[:swap_block_nums]
+    debug_trace.log(f"step_{debug_trace.step}/swap/perm", perm)
+    debug_trace.log(f"step_{debug_trace.step}/swap/selected_block_indices", selected_block_indices)
 
     num_neighbors = batch_nn_index.shape[-1]
     swap_index = batch_nn_index[-1, selected_block_indices, :]
@@ -55,6 +58,7 @@ def swap_block_state(protein, batch_nn_index, step, swap_block_nums, client, tem
         (swap_index, selected_block_indices.unsqueeze(1)), dim=1
     )
     swap_index = torch.unique(swap_index.flatten())
+    debug_trace.log(f"step_{debug_trace.step}/swap/swap_index", swap_index)
 
     protein_copy = copy.deepcopy(protein)
     protein_copy.structure[:, swap_index + 1] = C.STRUCTURE_MASK_TOKEN

@@ -1,7 +1,6 @@
 """Utility to batch individual ESMProteinTensors into a batched tensor."""
 
 import torch
-from esm.utils.sampling import _BatchedESMProteinTensor
 
 
 def batch_esm_protein_tensors(protein_tensors):
@@ -10,6 +9,8 @@ def batch_esm_protein_tensors(protein_tensors):
     This intentionally matches the gold-standard experimental implementation
     in `x/pt_swap_block_balance_initial_max2_gammac025.py`.
     """
+    from esm.utils.sampling import _BatchedESMProteinTensor  # lazy to avoid circular import
+
     batched_list = [
         _BatchedESMProteinTensor.from_protein_tensor(pt)
         for pt in protein_tensors
