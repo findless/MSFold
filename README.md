@@ -73,3 +73,11 @@ python scripts/rank_sll.py \
   --sample_dir outputs/example \
   --out outputs/example/sll_ranking.csv
 ```
+
+## Citation
+
+If you use MSFold in your work, please cite the current bioRxiv preprint:
+
+Wang Z, Yu Y, Yu C, Bu D. *Sampling protein structural token space enables accurate prediction of multiple conformations*. bioRxiv. 2026. doi:10.64898/2026.03.03.708411
+
+This citation will be updated after journal publication.
