@@ -35,8 +35,6 @@ def sample_from_sequence(
     output_dir: str,
     device: str = "cuda",
     seed: int | None = None,
-    debug_trace_path: str | None = None,
-    trace_only: bool = False,
     target_name: str | None = None,
 ):
     """Run MSFold sampling on a protein sequence.
@@ -142,7 +140,6 @@ def sample_from_sequence(
     # --- Sampling loop ---
     samples_block = []
     samples_file_list = []
-    debug_trace = []
 
     with torch.no_grad():
         progress = tqdm(
@@ -215,18 +212,6 @@ def sample_from_sequence(
                 }
             )
 
-            if debug_trace_path is not None:
-                debug_trace.append(
-                    {
-                        "step": step,
-                        "temperature": temp_levels.detach().cpu().clone(),
-                        "alpha": alpha_current.detach().cpu().clone(),
-                        "swap": swap_bool.detach().cpu().clone(),
-                        "nll": total_nll.detach().cpu().clone(),
-                        "structure": batch_protein_all_levels.structure.detach().cpu().clone(),
-                    }
-                )
-
             # Adaptive temperature update
             if step != 0:
                 gamma_c_dynamic = torch.where(
@@ -276,9 +261,6 @@ def sample_from_sequence(
 
     if trace_only:
         duration = time.time() - start_time
-        if debug_trace_path is not None:
-            with open(debug_trace_path, "wb") as f:
-                pickle.dump(debug_trace, f)
         return {
             "samples_path": None,
             "output_dir": output_dir,
