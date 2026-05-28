@@ -4,7 +4,6 @@ import logging
 
 import torch
 from esm.utils.constants import esm3 as C
-from msfold.utils.debug_trace import debug_trace
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +35,6 @@ def batch_adaptive_gibbs_step(client, protein, config, temp, **kwargs):
 
     random_matrix = torch.rand(batch_size, seq_len - 2)
     update_order = torch.argsort(random_matrix, dim=1)
-    debug_trace.log(f"step_{debug_trace.step}/gibbs/random_matrix", random_matrix)
-    debug_trace.log(f"step_{debug_trace.step}/gibbs/update_order", update_order)
 
     step_logits = torch.zeros(
         (batch_size, seq_len - 2, 4096), device=client.device
