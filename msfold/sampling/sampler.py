@@ -59,7 +59,6 @@ def sample_from_sequence(
     """
     if seed is not None:
         torch.manual_seed(seed)
-        torch.cuda.manual_seed(seed)
 
     # --- Unpack config ---
     init_temp_min = config["init_temp_min"]
@@ -114,12 +113,6 @@ def sample_from_sequence(
         logits = client.logits(protein, logits_config)
     scaled_logits = logits.logits.structure
     probs = torch.softmax(scaled_logits, dim=-1)
-
-    # Re-seed CUDA RNG to ensure deterministic multinomial sampling:
-    # GPU forward passes (encode, logits) may consume CUDA random state
-    # in a non-deterministic manner across different execution paths.
-    if seed is not None:
-        torch.cuda.manual_seed(seed)
     samples = [
         torch.multinomial(probs.squeeze(0), num_samples=1).squeeze()
         for _ in range(temp_nums)
