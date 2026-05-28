@@ -259,14 +259,6 @@ def sample_from_sequence(
                 pickle.dump(samples_block, f)
             samples_file_list.append(block_filename)
 
-    if trace_only:
-        duration = time.time() - start_time
-        return {
-            "samples_path": None,
-            "output_dir": output_dir,
-            "total_time_seconds": round(duration, 1),
-        }
-
     # --- Decode structures to PDB ---
     logger.info("Decoding structures to PDB...")
     all_samples = []
@@ -331,10 +323,6 @@ def sample_from_sequence(
             "seed": seed,
         },
     )
-
-    if debug_trace_path is not None:
-        with open(debug_trace_path, "wb") as f:
-            pickle.dump(debug_trace, f)
 
     return {
         "samples_path": f"{output_dir}/samples.csv",
