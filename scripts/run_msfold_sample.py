@@ -56,7 +56,7 @@ def main():
     print(f"Loaded config from {args.config}")
 
     # Load ESM3
-    print("Loading ESM3 model (weights will download on first run if not cached)...")
+    print("Loading ESM3 model...")
     client = load_esm3_client(args.device)
 
     # Run sampling

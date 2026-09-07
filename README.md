@@ -18,7 +18,7 @@ cd MSFold
 
 ### Step 2. Clone ESM, switch to the required version, and complete ESM3 setup
 
-MSFold depends on the official ESM3 codebase. Clone the ESM repository into `./esm`, switch it to `v3.1.1`, and then follow the official ESM instructions for any additional ESM3 setup and weight access.
+MSFold depends on the official ESM3 codebase and the ESM3 open-model weights. Clone the ESM repository into `./esm`, switch it to `v3.1.1`, and follow the official ESM instructions to obtain access to and configure the ESM3 open-model weights before running MSFold. ESM3 weights are external to MSFold and are not redistributed with this repository.
 
 ```bash
 git clone https://github.com/evolutionaryscale/esm.git esm
@@ -30,6 +30,8 @@ cd ..
 Official ESM instructions:
 
 - `https://github.com/evolutionaryscale/esm`
+
+The ESM code and ESM3 model weights are distributed under their respective upstream license terms. Users are responsible for complying with those terms.
 
 ### Step 3. Create the environment and install ESM + MSFold
 
@@ -58,10 +60,10 @@ python scripts/run_msfold_sample.py \
 
 ### Step 5. Check the output files
 
-After the run finishes, the following files should appear under `outputs/example/`:
+After the run finishes, the following outputs should appear under `outputs/example/`:
 
 - `samples.csv`
-- `*.pdb`
+- `temp_*/` replica directories containing decoded PDB structures
 - `config_used.json`
 - `run_metadata.json`
 
